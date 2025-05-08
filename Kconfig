@@ -1,0 +1,27 @@
+#
+# 多功能应用 - MP3播放器和GNSS码表
+#
+
+config SPRESENSEWONG
+	bool "多功能系统 - MP3播放器和GNSS码表"
+	default n
+	---help---
+		启用集成了MP3播放器和GNSS码表功能的多功能系统应用
+
+if SPRESENSEWONG
+
+config SPRESENSEWONG_PROGNAME
+	string "程序名称"
+	default "spresensewong"
+	---help---
+		这是用于生成可执行文件的程序名称
+
+config SPRESENSEWONG_PRIORITY
+	int "多功能系统任务优先级"
+	default 100
+
+config SPRESENSEWONG_STACKSIZE
+	int "多功能系统堆栈大小"
+	default 8192
+
+endif
