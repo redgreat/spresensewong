@@ -46,6 +46,7 @@ static GnssScreen g_gnss_screen = GNSS_SCREEN_ODOMETER;  // GNSS当前界面
 static uint32_t g_screen_timeout_sec = 30;  // 屏幕自动锁定时间(秒)
 static char g_track_filename[64];           // 当前轨迹文件名
 static bool g_show_about = false;           // 是否显示关于界面
+static int g_accel_history_index = 0;       // 加速度历史记录索引
 
 // 线程相关
 static pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -409,6 +410,44 @@ static void* gnss_thread(void* arg)
     // 获取行程数据
     trip_data = gnss_get_trip_data();
     
+    // 更新位置数据    
+    if (has_position) {
+      last_fix_time = time(nullptr);
+      
+      // 当前速度(km/h)
+      float current_speed_kmh = point.speed * 3.6f;
+      
+      // 检测百米加速
+      gnss_detect_acceleration();
+      
+      // 如果已在加速度测量中，监测并更新测量状态
+      if (g_trip_data.measuring_acceleration) {
+        gnss_check_acceleration_measurement(point);
+      }
+      // 自动检测加速度：从静止状态到行驶状态的自动检测
+      else {
+        // 如果从静止(<2km/h)变为移动(>5km/h)，则自动开始测量加速度
+        if (was_stopped && current_speed_kmh > 5.0f) {
+          printf("[GNSS] 检测到从静止到移动，自动开始加速度测量\n");
+          gnss_start_acceleration_measurement();
+        }
+      }
+      
+      // 更新状态
+      was_stopped = (current_speed_kmh < 2.0f);
+      prev_speed_kmh = current_speed_kmh;
+    } else {
+      // 如果20秒没有定位，显示搜索定位
+      time_t now = time(nullptr);
+      if (difftime(now, last_fix_time) > 20) {
+        // 失去定位超过20秒
+        // 如果在测量加速度，则取消测量
+        if (g_trip_data.measuring_acceleration) {
+          gnss_stop_acceleration_measurement(false);
+        }
+      }
+    }
+    
     // 更新界面（仅在GNSS模式下）
     if (main_menu_get_mode() == APP_MODE_GNSS) {
       // 根据当前界面绘制
@@ -438,6 +477,29 @@ static void* gnss_thread(void* arg)
         case GNSS_SCREEN_ACCEL_TEST:
           gnss_draw_accel_test(trip_data, 
                               has_position ? point.speed : 0.0f);
+          break;
+          
+        case GNSS_SCREEN_SEGMENT:
+          gnss_draw_segment_settings(
+              gnss_is_segment_enabled(),
+              gnss_get_segment_option(),
+              gnss_get_segment_custom_time(),
+              g_segment_index);
+          break;
+          
+        case GNSS_SCREEN_HISTORY:
+          // 历史分段列表界面
+          gnss_draw_history_list(g_history_files, g_history_index);
+          break;
+          
+        case GNSS_SCREEN_SEGMENT_DETAIL:
+          // 分段详情界面
+          gnss_draw_segment_detail(g_loaded_segments, g_detail_index);
+          break;
+          
+        case GNSS_SCREEN_ACCELERATION:
+          // 加速度历史记录界面
+          gnss_draw_acceleration_history(g_accel_history_index);
           break;
       }
     }

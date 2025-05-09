@@ -16,7 +16,11 @@ enum GnssScreen {
   GNSS_SCREEN_TRACKING,    // 轨迹记录控制
   GNSS_SCREEN_TRIP_DATA,   // 行程数据分析
   GNSS_SCREEN_SETTINGS,    // GNSS 设置
-  GNSS_SCREEN_ACCEL_TEST   // 百米加速测试
+  GNSS_SCREEN_SEGMENT,     // 分段设置
+  GNSS_SCREEN_ACCEL_TEST,  // 百米加速测试
+  GNSS_SCREEN_HISTORY,     // 历史分段列表
+  GNSS_SCREEN_SEGMENT_DETAIL, // 分段详情
+  GNSS_SCREEN_ACCELERATION  // 加速度记录历史
 };
 
 // 屏幕旋转方向
@@ -48,8 +52,20 @@ void gnss_draw_trip_data(const TripData* trip);
 // 绘制GNSS设置界面
 void gnss_draw_settings(GnssUpdateRate rate, int selected_index);
 
+// 绘制分段设置界面
+void gnss_draw_segment_settings(bool enabled, SegmentTimeOption option, uint32_t custom_time, int selected_index);
+
 // 绘制百米加速测试界面
 void gnss_draw_accel_test(const TripData* trip, float current_speed);
+
+// 绘制历史分段列表界面
+void gnss_draw_history_list(const std::vector<std::string>& files, int selected_index);
+
+// 绘制分段详情界面
+void gnss_draw_segment_detail(const std::vector<SegmentData>& segments, int selected_index);
+
+// 绘制加速度历史记录界面
+void gnss_draw_acceleration_history(int selected_index);
 
 // 获取当前界面
 GnssScreen gnss_get_current_screen();
