@@ -18,7 +18,8 @@ enum AppScreen {
   SCREEN_SETTINGS,   // 设置界面
   SCREEN_LOCKSCREEN, // 锁屏界面
   SCREEN_EQ,         // 均衡器设置
-  SCREEN_LYRICS      // 歌词显示
+  SCREEN_LYRICS,     // 歌词显示
+  SCREEN_BACKLIGHT   // 背光设置
 };
 
 // 界面初始化
@@ -41,15 +42,18 @@ void ui_draw_lyrics_screen(const std::vector<LrcLine>& lyrics,
 void ui_draw_browser(const std::vector<MusicFile>& files, 
                      size_t current_index, size_t start_index);
 
-// 设置界面
+// 系统设置界面
 void ui_draw_settings(int selected_item, LoopMode loop_mode, 
-                     EQPreset eq_mode, uint32_t sleep_minutes);
+                     EQPreset eq_mode, uint32_t sleep_minutes, bool include_backlight = true);
 
 // EQ调整界面
 void ui_draw_eq_screen(const int8_t* eq_bands, int num_bands, int selected_band);
 
 // SD卡信息界面
 void ui_draw_sd_info(const SDCardInfo& sd_info);
+
+// 背光设置界面
+void ui_draw_backlight_settings(int selected_item, uint8_t brightness, uint16_t timeout_seconds);
 
 // 屏幕刷新
 void ui_update();

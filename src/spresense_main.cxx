@@ -63,6 +63,7 @@ static void draw_system_settings(int selected_item);
 enum SystemSetting {
   SYS_SCREEN_TIMEOUT,
   SYS_SLEEP_TIMER,
+  SYS_BACKLIGHT,     // 背光设置
   SYS_FORMAT_SD,
   SYS_BACK
 };
@@ -119,6 +120,7 @@ static void draw_system_settings(int selected_item)
   const char* items[] = {
     "屏幕超时",
     "睡眠定时",
+    "背光设置",
     "格式化SD卡",
     "返回"
   };
@@ -312,7 +314,10 @@ static void handle_gnss_keys(KeyCode key)
  */
 static void handle_system_settings(KeyCode key) 
 {
-  const int settings_count = 4; // 屏幕超时、睡眠定时、格式化SD卡、返回
+  // 外部声明的变量
+  extern bool g_in_backlight_settings;
+  
+  const int settings_count = 5; // 屏幕超时、睡眠定时、背光设置、格式化SD卡、返回
   
   switch (key) {
     case KEY_PREV:
@@ -364,6 +369,20 @@ static void handle_system_settings(KeyCode key)
           set_sleep_timer(times[idx]);
           break;
         }
+        
+        case SYS_BACKLIGHT:
+          // 进入背光设置界面
+          g_in_backlight_settings = true;
+          
+          // 重置背光设置菜单索引
+          extern int g_backlight_menu_index;
+          g_backlight_menu_index = 0;
+          
+          // 显示背光设置界面
+          extern uint8_t g_backlight_brightness;
+          extern uint16_t g_backlight_timeout;
+          ui_draw_backlight_settings(g_backlight_menu_index, g_backlight_brightness, g_backlight_timeout);
+          break;
         
         case SYS_FORMAT_SD:
           // 格式化SD卡需要确认，这里简化处理

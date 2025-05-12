@@ -302,7 +302,7 @@ void ui_draw_browser(const std::vector<MusicFile>& files,
  * 绘制设置界面
  */
 void ui_draw_settings(int selected_item, LoopMode loop_mode, 
-                    EQPreset eq_mode, uint32_t sleep_minutes)
+                    EQPreset eq_mode, uint32_t sleep_minutes, bool include_backlight)
 {
   u8g2_t* u8g2 = get_display();
   
@@ -312,31 +312,36 @@ void ui_draw_settings(int selected_item, LoopMode loop_mode,
   u8g2_SetFont(u8g2, u8g2_font_6x12_tr);
   u8g2_DrawStr(u8g2, 40, 10, "设置");
   
-  /* 设置项目 */
-  const char* settings[] = {
+  /* 菜单项 */
+  const char* menu_items[] = {
     "循环模式",
     "均衡器",
     "睡眠定时",
+    "背光设置",
     "SD卡信息",
     "返回"
   };
   
-  const int settings_count = sizeof(settings) / sizeof(settings[0]);
+  const int items_count = sizeof(menu_items) / sizeof(menu_items[0]);
+  const int item_height = 12; // 由于增加了项目，稍微减小行高
+  char buf[32];
   
-  for (int i = 0; i < settings_count; i++) {
-    int y_pos = 24 + i * 12;
+  u8g2_SetFont(u8g2, u8g2_font_6x12_tr);
+  
+  for (int i = 0; i < items_count; i++) {
+    int y_pos = 26 + i * item_height;
     
-    /* 当前选中项反色显示 */
+    /* 选中项反色显示 */
     if (i == selected_item) {
       u8g2_DrawBox(u8g2, 0, y_pos-10, 128, 12);
       u8g2_SetDrawColor(u8g2, 0);
     }
     
-    u8g2_DrawStr(u8g2, 5, y_pos, settings[i]);
+    /* 菜单项文字 */
+    u8g2_DrawStr(u8g2, 5, y_pos, menu_items[i]);
     
-    /* 显示当前设置值 */
+    /* 当前值 */
     const char* value = "";
-    char buf[32] = {0};
     
     switch (i) {
       case 0: /* 循环模式 */
@@ -354,6 +359,10 @@ void ui_draw_settings(int selected_item, LoopMode loop_mode,
         } else {
           value = "关闭";
         }
+        break;
+        
+      case 3: /* 背光设置 */
+        value = "进入 >";
         break;
     }
     
@@ -480,6 +489,94 @@ void ui_draw_sd_info(const SDCardInfo& sd_info)
   
   /* 绘制存储条 */
   draw_progress_bar(5, 54, 118, 8, sd_info.used_mb, sd_info.total_mb);
+  
+  u8g2_SendBuffer(u8g2);
+}
+
+/**
+ * 绘制背光设置界面
+ */
+void ui_draw_backlight_settings(int selected_item, uint8_t brightness, uint16_t timeout_seconds)
+{
+  u8g2_t* u8g2 = get_display();
+  
+  u8g2_ClearBuffer(u8g2);
+  
+  /* 标题 */
+  u8g2_SetFont(u8g2, u8g2_font_6x12_tr);
+  u8g2_DrawStr(u8g2, 30, 10, "背光设置");
+  
+  /* 菜单项 */
+  const char* menu_items[] = {
+    "亮度级别",
+    "自动关闭"
+  };
+  
+  const int items_count = sizeof(menu_items) / sizeof(menu_items[0]);
+  const int item_height = 14;
+  char buf[32];
+  
+  u8g2_SetFont(u8g2, u8g2_font_6x12_tr);
+  
+  for (int i = 0; i < items_count; i++) {
+    int y_pos = 30 + i * item_height;
+    
+    /* 选中项反色显示 */
+    if (i == selected_item) {
+      u8g2_DrawBox(u8g2, 0, y_pos-10, 128, 12);
+      u8g2_SetDrawColor(u8g2, 0);
+    }
+    
+    /* 菜单项文字 */
+    u8g2_DrawStr(u8g2, 5, y_pos, menu_items[i]);
+    
+    /* 当前值 */
+    const char* value = "";
+    
+    switch (i) {
+      case 0: /* 亮度级别 */
+        snprintf(buf, sizeof(buf), "%d/5", brightness);
+        value = buf;
+        break;
+        
+      case 1: /* 自动关闭 */
+        if (timeout_seconds == 0) {
+          value = "始终开启";
+        } else {
+          snprintf(buf, sizeof(buf), "%d秒", timeout_seconds);
+          value = buf;
+        }
+        break;
+    }
+    
+    /* 在右侧显示值 */
+    if (*value) {
+      int x_pos = 128 - u8g2_GetStrWidth(u8g2, value) - 5;
+      u8g2_DrawStr(u8g2, x_pos, y_pos, value);
+    }
+    
+    /* 恢复颜色 */
+    if (i == selected_item) {
+      u8g2_SetDrawColor(u8g2, 1);
+    }
+  }
+  
+  /* 绘制亮度可视化 */
+  if (selected_item == 0) {
+    const int bar_width = 100;
+    const int bar_height = 8;
+    const int x_start = 14;
+    const int y_start = 50;
+    
+    /* 外框 */
+    u8g2_DrawFrame(u8g2, x_start, y_start, bar_width, bar_height);
+    
+    /* 填充部分，根据亮度级别 */
+    int fill_width = (brightness * (bar_width - 2)) / 5;
+    if (fill_width > 0) {
+      u8g2_DrawBox(u8g2, x_start + 1, y_start + 1, fill_width, bar_height - 2);
+    }
+  }
   
   u8g2_SendBuffer(u8g2);
 }

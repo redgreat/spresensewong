@@ -39,3 +39,10 @@ bool main_menu_is_locked();
 void main_menu_update_battery();
 int main_menu_get_battery_percent();
 bool main_menu_is_battery_charging();
+
+// 背光设置
+void main_menu_backlight_set_brightness(uint8_t level);
+void main_menu_backlight_set_timeout(uint16_t seconds);
+uint8_t main_menu_backlight_get_brightness();
+uint16_t main_menu_backlight_get_timeout();
+void main_menu_update_backlight();

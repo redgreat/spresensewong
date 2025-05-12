@@ -14,6 +14,16 @@ static u8g2_t g_u8g2;
 // #define LCD_SPI_A0    9
 // #define LCD_SPI_RST   8
 
+/* 背光控制 */
+#define LCD_BACKLIGHT_PIN 6  // 背光控制引脚
+#define LCD_BACKLIGHT_PWM 7  // PWM引脚，可能需要配置PWM模块
+
+/* 背光设置 */
+static uint8_t g_backlight_brightness = 5;  // 当前背光亮度(0-5)
+static uint16_t g_backlight_timeout = 30;  // 背光自动关闭时间(秒)
+static time_t g_last_backlight_activity = 0; // 最后背光活动时间
+static bool g_backlight_on = true;          // 背光的状态
+
 /**
  * LCD初始化
  */
@@ -27,6 +37,10 @@ void lcd_init()
   u8x8_SetPin_Reset(&g_u8g2.u8x8, LCD_SPI_RST);
   u8g2_InitDisplay(&g_u8g2);
   u8g2_SetPowerSave(&g_u8g2, 0);
+  
+  /* 默认设置英文字体 */
+  u8g2_SetFont(&g_u8g2, u8g2_font_6x12_tr);
+  
   u8g2_ClearBuffer(&g_u8g2);
   u8g2_SendBuffer(&g_u8g2);
 }
@@ -53,8 +67,24 @@ void lcd_set_contrast(uint8_t contrast)
  */
 void lcd_backlight(bool on) 
 {
-  /* 如果有GPIO控制背光，可在此实现 */
-  /* 使用板级GPIO控制或PWM模块 */
+  /* 使用GPIO控制背光开关 */
+  g_backlight_on = on;
+  
+  if (on) {
+    // 根据亮度调节PWM占空比
+    int brightness_percent = (g_backlight_brightness * 100) / 5;
+    // 这里这一部分需要使用Spresense的PWM API
+    // 简化示例，假设有一个PWM控制函数
+    // pwm_set_duty(LCD_BACKLIGHT_PWM, brightness_percent);
+    printf("[背光] 开启，亮度: %d%%\n", brightness_percent);
+  } else {
+    // 关闭背光
+    // pwm_set_duty(LCD_BACKLIGHT_PWM, 0);
+    printf("[背光] 关闭\n");
+  }
+  
+  // 更新最后活动时间
+  g_last_backlight_activity = time(NULL);
 }
 
 /**
@@ -148,4 +178,91 @@ void draw_footer(const char* text)
 u8g2_t* get_display() 
 {
   return &g_u8g2;
+}
+
+/**
+ * 设置中文字体
+ * 使用unifont字库的中文字体支持
+ */
+void lcd_set_chinese_font()
+{
+  u8g2_SetFont(&g_u8g2, u8g2_font_unifont_t_chinese2);
+}
+
+/**
+ * 恢复英文字体
+ * 英文字体较小，显示更多内容
+ */
+void lcd_set_english_font()
+{
+  u8g2_SetFont(&g_u8g2, u8g2_font_6x12_tr);
+}
+
+/**
+ * 绘制UTF-8编码的文本
+ * 用于显示中文等多字节字符
+ */
+void lcd_draw_utf8(int x, int y, const char* utf8_text)
+{
+  u8g2_DrawUTF8(&g_u8g2, x, y, utf8_text);
+}
+
+/**
+ * 设置背光亮度级别(0-5)
+ */
+void lcd_set_backlight_brightness(uint8_t level)
+{
+  // 确保在有效范围内
+  if (level > 5) level = 5;
+  
+  g_backlight_brightness = level;
+  
+  // 如果背光当前是打开的，立即应用新亮度
+  if (g_backlight_on) {
+    lcd_backlight(true); // 重新调用会应用新的亮度设置
+  }
+  
+  printf("[背光] 亮度级别已设置为: %d\n", level);
+}
+
+/**
+ * 设置背光自动熄灭时间(秒)
+ */
+void lcd_set_backlight_timeout(uint16_t seconds)
+{
+  g_backlight_timeout = seconds;
+  printf("[背光] 自动熄灭时间已设置为: %d秒\n", seconds);
+}
+
+/**
+ * 获取当前背光亮度
+ */
+uint8_t lcd_get_backlight_brightness()
+{
+  return g_backlight_brightness;
+}
+
+/**
+ * 获取当前背光超时时间
+ */
+uint16_t lcd_get_backlight_timeout()
+{
+  return g_backlight_timeout;
+}
+
+/**
+ * 更新背光状态，检查超时
+ */
+void lcd_update_backlight()
+{
+  // 如果已配置超时时间且当前背光是打开的
+  if (g_backlight_timeout > 0 && g_backlight_on) {
+    time_t now = time(NULL);
+    time_t idle_time = now - g_last_backlight_activity;
+    
+    // 超时自动关闭背光
+    if (idle_time >= g_backlight_timeout) {
+      lcd_backlight(false);
+    }
+  }
 }
